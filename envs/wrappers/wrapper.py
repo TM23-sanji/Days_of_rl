@@ -31,7 +31,7 @@ class BufferWrapper(gym.ObservationWrapper):
         self.buffer = collections.deque(maxlen=n_steps)
     
     def reset(self, *, seed: tt.Optional[int] = None, options: tt.Optional[dict[str, tt.Any]] = None):
-        for _ in range(self.buffer.max_len-1):
+        for _ in range(self.buffer.maxlen-1):
             self.buffer.append(self.env.observation_space.low)
         obs, extra = self.env.reset()
         return self.observation(obs), extra
@@ -44,6 +44,6 @@ class BufferWrapper(gym.ObservationWrapper):
 def make_env(env_name: str, **kwargs):
     env = gym.make(env_name, **kwargs)
     env = atari_wrappers.AtariWrapper(env, clip_reward=False, noop_max=0)
-    env = ImageToPyTorch()
+    env = ImageToPyTorch(env)
     env = BufferWrapper(env, n_steps=4)
     return env

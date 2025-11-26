@@ -1,6 +1,8 @@
-import gymnasium as gym, wandb, os
+# https://ale.farama.org/environments/pong/#
+
+import gymnasium as gym, wandb, os, ale_py
 from model.dqn_model import DQN
-from wrappers import wrapper
+from envs.wrappers import wrapper
 
 from dataclasses import dataclass
 import argparse, time, numpy as np, collections, typing as tt
@@ -10,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 api_key = os.getenv("WANDB_API_KEY")
 wandb.login(key=api_key)
+gym.register_envs(ale_py)
 
 DEFAULT_ENV_NAME = 'PongNoFrameskip-v4'
 MEAN_REWARD_BOUND = 19
@@ -41,8 +44,8 @@ class Experience:
     state: State
     action: Action
     reward: float
-    done_trunc = bool
-    new_state = State
+    done_trunc : bool
+    new_state : State
 
 class ExperienceBuffer:
     def __init__(self, capacity: int):
@@ -75,7 +78,7 @@ class Agent:
         done_reward = None
 
         if np.random.random() < epsilon:
-            action = self.env.action_space.sample()
+            action = env.action_space.sample()
         else:
             state_v = torch.as_tensor(self.state).to(device)
             state_v.unsqueeze_(0)
@@ -87,8 +90,7 @@ class Agent:
         self.total_reward += reward
 
         exp = Experience(
-            state=self.state, action=action, reward=float(reward),
-            done_trunc=is_done or is_trunc, new_state=new_state
+            state=self.state, action=action, reward=float(reward), done_trunc=is_done or is_trunc, new_state=new_state
         )
         self.exp_buffer.append(exp)
         self.state = new_state
@@ -130,7 +132,7 @@ def calc_loss(batch : tt.List[Experience], net: DQN, tgt_net: DQN, device: torch
         next_state_values = next_state_values.detach()
     
     expected_state_action_values = next_state_values * GAMMA + rewards_t
-    return nn.MSELoss(state_action_values, expected_state_action_values)
+    return nn.MSELoss()(state_action_values, expected_state_action_values)
 
 
 if __name__ == "__main__":
@@ -143,7 +145,7 @@ if __name__ == "__main__":
 
     env = wrapper.make_env(args.env)
     net = DQN(env.observation_space.shape, env.action_space.n).to(device)
-    tgt_net = DQN(env.observation_space.shape, env.action_space.shape).to(device)
+    tgt_net = DQN(env.observation_space.shape, env.action_space.n).to(device)
     wandb.init(project="PongNoFrameskip-v4", name="dqn")
 
     print(net)
