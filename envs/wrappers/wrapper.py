@@ -5,16 +5,20 @@ from stable_baselines3.common import atari_wrappers
 class ImageToPyTorch(gym.ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
-        obs = self.observation_space
+        obs = self.observation_space   
+        # observation_space=Box(0, 255, (210, 160, 3), np.uint8)
+        # this 0 to 255 means the value this (210, 160, 3) will hold 
         assert isinstance(obs, gym.spaces.Box)
         assert len(obs.shape) == 3
         new_shape = (obs.shape[-1], obs.shape[0], obs.shape[1])
-        self.observation_space = gym.spaces.Box(
+        self.observation_space = gym.spaces.Box(      # this just tells what shape to expect
             low = obs.low.min(), high = obs.high.max(),
             shape=new_shape, dtype=obs.dtype
         )
     
     def observation(self, observation):
+        # original shape is (H, W, C) but pytorch wants (C, H, W)
+        # this is actual change in observation
         return np.moveaxis(observation, 2, 0)
     
 
@@ -23,6 +27,10 @@ class BufferWrapper(gym.ObservationWrapper):
         super().__init__(env)
         obs = env.observation_space
         assert isinstance(obs, gym.spaces.Box)
+        # obs.low.shape = (C, H, W) with min possible value for each pixel
+
+        # then here obs low is not just a value but rather a nstep frame with min value
+        # so now obs.low.shape = (C * n_steps, H, W)
         new_obs = gym.spaces.Box(
             obs.low.repeat(n_steps, axis=0), obs.high.repeat(n_steps, axis=0),
             dtype=obs.dtype

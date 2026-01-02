@@ -1,4 +1,5 @@
 # https://ale.farama.org/environments/pong/#
+# python -m envs.pong.dqn_pong                                                       
 
 import gymnasium as gym, wandb, os, ale_py
 from model.dqn_model import DQN
@@ -78,7 +79,7 @@ class Agent:
         done_reward = None
 
         if np.random.random() < epsilon:
-            action = env.action_space.sample()
+            action = self.env.action_space.sample()
         else:
             state_v = torch.as_tensor(self.state).to(device)
             state_v.unsqueeze_(0)
